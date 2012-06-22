@@ -1,0 +1,7 @@
+dependencies {
+	compile libraries.httpCore
+	compile libraries.httpClient
+	compile libraries.slf4jApi
+	compile libraries.sardine
+	compile libraries.logback
+}

@@ -1,0 +1,4 @@
+^\..*,IGNORE
+^.*\.(iso|exe|app)$,IGNORE
+Microsoft User Data,IGNORE
+About Stacks.lpdf,IGNORE
