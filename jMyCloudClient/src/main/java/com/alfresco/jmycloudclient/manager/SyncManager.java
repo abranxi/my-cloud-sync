@@ -25,6 +25,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Properties;
 import java.util.ResourceBundle;
 import java.util.Scanner;
 import java.util.Timer;
@@ -49,6 +50,7 @@ public class SyncManager {
 	private final String localCloud;
 	private final String configFolder;
 	private final String exceptionsFile;
+	private final Properties settings;
 
 	private final Map<String, String> globalExceptions;
 	
@@ -59,12 +61,12 @@ public class SyncManager {
 	public SyncManager(ResourceBundle resources, final SyncView view) {
 		this.view = view;
 		this.globalExceptions = getGlobalExceptions();
-
-
+		
+		configFolder = System.getProperty("user.home") + resources.getString("configfolder");
+		settings = loadSettingsFile(resources.getString("settingsfile"));
 		protocol = resources.getString("protocol");
 		server = resources.getString("server");
-		localCloud = System.getProperty("user.home") + resources.getString("localcloudfolder");
-		configFolder = System.getProperty("user.home") + resources.getString("configfolder");
+		localCloud = getLocalCloud(resources);
 		exceptionsFile = resources.getString("exceptionsfile");
 		
 		view.addSyncButtonHandler(new ClickHandler() {			
@@ -156,18 +158,28 @@ public class SyncManager {
 	}
 	
 	private String getTenant(String email) {
-		return email.split("@")[1];
+		String tenant = settings.getProperty("cloud-tenant");
+		if(tenant == null || tenant.isEmpty()){
+			tenant = email.split("@")[1];
+		}
+		
+		return tenant;
 	}
 	
 	private String getDefaultSite(String email) {
-		try {
-			String[] emailSplit = email.split("@");
-			String[] user = emailSplit[0].split("\\.");
-			String[] domain = emailSplit[1].split("\\.");
-			return user[0] + "-" + user[1] + "-" + domain[0] + "-" + domain[1];
-		} catch (Exception e) {
-			return "invalid email";
+		String site = settings.getProperty("cloud-site");
+		if(site == null || site.isEmpty()) {
+			try {
+				String[] emailSplit = email.split("@");
+				String[] user = emailSplit[0].split("\\.");
+				String[] domain = emailSplit[1].split("\\.");
+				site = user[0] + "-" + user[1] + "-" + domain[0] + "-" + domain[1];
+			} catch (Exception e) {
+				return "";
+			}
 		}
+		
+		return site;
 	}
 	
 	private Map<String, String> getAllExceptions() {
@@ -227,5 +239,24 @@ public class SyncManager {
 			}
 		}
 		return false;
+	}
+	
+	private Properties loadSettingsFile(String path) {
+		Properties settings = new Properties();
+		try {
+			settings.load(new FileInputStream(configFolder + "/" + path));
+		} catch (Exception e) {
+			LOGGER.error("Failed to load settings file");
+		}
+		
+		return settings;
+	}
+	
+	private String getLocalCloud(ResourceBundle resources) {
+		String localCloud = settings.getProperty("local-folder");
+		if(localCloud == null || localCloud.isEmpty()) {
+			localCloud = System.getProperty("user.home") + resources.getString("localcloudfolder");
+		}
+		return localCloud;
 	}
 }

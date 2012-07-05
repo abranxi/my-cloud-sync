@@ -31,18 +31,20 @@ import com.alfresco.jmycloudclient.view.SyncView;
 import com.alfresco.jmycloudclient.view.SyncViewImpl;
 
 public class MyCloudClient {
-	
-	private static final Logger LOGGER = LoggerFactory.getLogger(MyCloudClient.class);
-	
+
+	private static final Logger LOGGER = LoggerFactory
+			.getLogger(MyCloudClient.class);
+
 	public static void main(String[] args) throws Exception {
-		final ResourceBundle resources = ResourceBundle.getBundle("com.alfresco.jmycloudclient.config");
-		
+		final ResourceBundle resources = ResourceBundle
+				.getBundle("com.alfresco.jmycloudclient.config");
+
 		SwingUtilities.invokeLater(new Runnable() {
-            public void run() {
-            	LOGGER.info("----------myCloudSync started----------");
-                SyncView view = new SyncViewImpl();
-        		new SyncManager(resources, view);
-            }
-        });
+			public void run() {
+				LOGGER.info("----------myCloudSync started----------");
+				SyncView view = new SyncViewImpl();
+				new SyncManager(resources, view);
+			}
+		});
 	}
 }
