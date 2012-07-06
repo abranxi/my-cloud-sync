@@ -26,6 +26,7 @@ import javax.swing.SwingUtilities;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.alfresco.jmycloudclient.filestore.SystemListener;
 import com.alfresco.jmycloudclient.manager.SyncManager;
 import com.alfresco.jmycloudclient.view.SyncView;
 import com.alfresco.jmycloudclient.view.SyncViewImpl;
@@ -46,5 +47,7 @@ public class MyCloudClient {
 				new SyncManager(resources, view);
 			}
 		});
+		
+		SystemListener listener = new SystemListener();
 	}
 }

@@ -4,4 +4,5 @@ dependencies {
 	compile libraries.slf4jApi
 	compile libraries.sardine
 	compile libraries.logback
+	compile libraries.jnotify
 }

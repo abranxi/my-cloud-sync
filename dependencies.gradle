@@ -1,6 +1,6 @@
 repositories {
-   mavenCentral()
-   mavenRepo(urls: 'http://sardine.googlecode.com/svn/maven/')
+   mavenRepo(urls: 'http://23.21.89.19:8081/artifactory/cloud-sync/')
+//   mavenRepo(urls: 'http://sardine.googlecode.com/svn/maven/')
 }
 
 gwtVersion = '2.4.0'
@@ -13,5 +13,6 @@ libraries = [
 	slf4jApi: 'org.slf4j:slf4j-api:1.6.4',
 	sardine: 'com.googlecode.sardine:sardine:314',
 	logback: ['ch.qos.logback:logback-core:1.0.6','ch.qos.logback:logback-classic:1.0.6','ch.qos.logback:logback-access:1.0.6'],
-	groovy: 'org.codehaus.groovy:groovy-all:1.8.6'
+	groovy: 'org.codehaus.groovy:groovy-all:1.8.6',
+	jnotify: 'net.contentobjects:jnotify:0.94'
 ]
