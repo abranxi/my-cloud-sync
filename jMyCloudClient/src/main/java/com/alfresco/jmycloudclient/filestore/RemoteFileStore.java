@@ -92,12 +92,12 @@ public class RemoteFileStore extends AbstractLoggableFileStore {
 			getLogger().error(e.toString());
 			return null;
 		}
-		if(davResources != null) { 
+		if(davResources != null) { 	
 			resources = new HashMap<String, Resource>();
 			for (DavResource davResource : davResources) {
 				if(!isResourceContainer(davResource, container)) {
 					String combinedPath = path + "/" + davResource.getName();
-					Resource res = new Resource(davResource.getName(), combinedPath, davResource.getModified().getTime(), davResource.isDirectory(), davResource.getContentLength());
+					Resource res = new Resource(davResource.getName(), combinedPath, (davResource.getModified() != null) ? davResource.getModified().getTime() : 0, davResource.isDirectory(), davResource.getContentLength());
 					resources.put(combinedPath, res);
 					if(deep && davResource.isDirectory()){
 						Map<String, Resource> nested = listResources(combinedPath, deep);

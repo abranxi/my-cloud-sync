@@ -19,14 +19,12 @@
 
 package com.alfresco.jmycloudclient.manager;
 
-import java.awt.event.MouseEvent;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Properties;
-import java.util.ResourceBundle;
 import java.util.Scanner;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -38,54 +36,182 @@ import com.alfresco.jmycloudclient.filestore.FileStore;
 import com.alfresco.jmycloudclient.filestore.LocalFileStore;
 import com.alfresco.jmycloudclient.filestore.RemoteFileStore;
 import com.alfresco.jmycloudclient.model.Resource;
-import com.alfresco.jmycloudclient.view.ClickHandler;
-import com.alfresco.jmycloudclient.view.SyncView;
+import com.alfresco.jmycloudclient.view.SetupDialog;
+import com.alfresco.jmycloudclient.view.SystemTrayIcon;
+import com.alfresco.jmycloudclient.view.i18n.I18N;
 
+/**
+ * Main class to control synchronisation between local folder
+ * and remote server
+ * 
+ * @author dgildeh
+ *
+ */
 public class SyncManager {
+	
 	private static final Logger LOGGER = LoggerFactory.getLogger(SyncManager.class);
+	
 	private static final int ONE_GB = 1073741824;
-	private final SyncView view;
-	private final String protocol;
-	private final String server;
-	private final String localCloud;
-	private final String configFolder;
-	private final String exceptionsFile;
-	private final Properties settings;
+	
+	// SingleTon Instance
+	private static SyncManager syncManager = null;
 
 	private final Map<String, String> globalExceptions;
 	
-	private FileStore remoteDisk;
-	private FileStore localDisk;
-	private boolean uiDisabled;
+	// Remote Disk File Store
+	private FileStore remoteDisk = null;
+	// Local Disk File Store
+	private FileStore localDisk = null;
+	
+	// Initialisation flag, if false class isn't properly initialised ready for sync
+	private boolean isInitialised = false;
 
-	public SyncManager(ResourceBundle resources, final SyncView view) {
-		this.view = view;
+	/**
+	 * Private Constructor for SingleTon pattern
+	 */
+	private SyncManager() {
+
+		// Load file type exceptions to ignore during sync
 		this.globalExceptions = getGlobalExceptions();
-		
-		configFolder = System.getProperty("user.home") + resources.getString("configfolder");
-		settings = loadSettingsFile(resources.getString("settingsfile"));
-		protocol = resources.getString("protocol");
-		server = resources.getString("server");
-		localCloud = getLocalCloud(resources);
-		exceptionsFile = resources.getString("exceptionsfile");
-		
-		view.addSyncButtonHandler(new ClickHandler() {			
-			@Override
-			public void onClick(MouseEvent e) {
-				if(uiDisabled) {
-					return;
-				}
-				
-				LOGGER.debug("Start sync clicked");
-				loginUpdateView(true, "");
-				startSync();
-			}
-		});
+		// Initialise SyncManager
+		init();
 	}
 	
-	private void init(String tenant, String site, String username, String password) {
-		remoteDisk = new RemoteFileStore(protocol, server, tenant, site, username, password);
-		localDisk = new LocalFileStore(localCloud);
+	/**
+	 * Checks all settings are set and connections are valid. If not will show Setup Dialog
+	 * with error message. If they are all valid it will initialise the file stores ready for
+	 * sync
+	 */
+	private void init() {
+		
+		LOGGER.info("Initialising SyncManager...");
+		
+		// Check that we have all necessary user preferences set - if not show Setup Dialog
+		if (! validateAllUserPrefs()) {						
+			LOGGER.info("User Properties Missing, Opening Setup Dialog...");
+			SetupDialog.showWindow();
+		} else {
+					
+			LOGGER.info("User Properties Found, Initialising File Stores with following settings: HTTP_PROTOCOL: " + AppProperties.getString(AppProperties.HTTP_PROTOCOL)
+					+ ", SERVER_URL: " + AppProperties.getString(AppProperties.SERVER_URL)
+					+ ", LOGIN_EMAIL: " + UserPreferences.getUserPref(UserPreferences.LOGIN_EMAIL)
+					+ ", SYNC_NETWORK: " + UserPreferences.getUserPref(UserPreferences.SYNC_NETWORK)
+					+ ", SYNC_SITE: " + UserPreferences.getUserPref(UserPreferences.SYNC_SITE)
+					+ ", LOCAL_FOLDER_PATH: " + UserPreferences.getUserPref(UserPreferences.SYNC_LOCAL_FOLDER_PATH));
+					
+			
+			// Initialise file stores	
+			remoteDisk = new RemoteFileStore(AppProperties.getString(AppProperties.HTTP_PROTOCOL), 
+					AppProperties.getString(AppProperties.SERVER_URL), UserPreferences.getUserPref(UserPreferences.SYNC_NETWORK), 
+					UserPreferences.getUserPref(UserPreferences.SYNC_SITE), UserPreferences.getUserPref(UserPreferences.LOGIN_EMAIL), 
+					UserPreferences.getUserPref(UserPreferences.LOGIN_PASSWORD));						
+			localDisk = new LocalFileStore(UserPreferences.getUserPref(UserPreferences.SYNC_LOCAL_FOLDER_PATH));	
+			
+			// Check we can connect to both
+			if (! remoteDisk.isValidConnection()) {
+				SetupDialog.setStatusMsg(I18N.getString("error.cannotConnectRemote.html"));
+				SetupDialog.showWindow();
+			} else if (! localDisk.isValidConnection()) {
+				SetupDialog.setStatusMsg(I18N.getString("error.cannotConnectLocal.html"));
+				SetupDialog.showWindow();
+			} else {
+				// No problems, initialisation complete
+				isInitialised = true;
+				LOGGER.info("SyncManager Initialisation Complete!");
+			}
+		}
+	}
+	
+	/**
+	 * Checks if all required user preferences are set and validated, if so will return 
+	 * true, otherwise false
+	 * 
+	 * @return		True - all user preferences set & validated, 
+	 * 				False - User Preferences need to be set & validated
+	 */
+	public static boolean validateAllUserPrefs() {
+		
+		if (UserPreferences.getUserPref(UserPreferences.LOGIN_EMAIL) == null) {
+			LOGGER.error("Missing User Preference " + UserPreferences.LOGIN_EMAIL);
+			return false;
+		}
+		
+		if (UserPreferences.getUserPref(UserPreferences.LOGIN_PASSWORD) == null) {
+			LOGGER.error("Missing User Preference " + UserPreferences.LOGIN_PASSWORD);
+			return false;
+		}
+		
+		if (UserPreferences.getUserPref(UserPreferences.LOGIN_VALIDATED, false) == false) {
+			LOGGER.error("Missing User Preference " + UserPreferences.LOGIN_VALIDATED);
+			return false;
+		}
+		
+		if (UserPreferences.getUserPref(UserPreferences.SYNC_NETWORK) == null) {
+			LOGGER.error("Missing User Preference " + UserPreferences.SYNC_NETWORK);
+			return false;
+		}
+		
+		if (UserPreferences.getUserPref(UserPreferences.SYNC_SITE) == null) {
+			LOGGER.error("Missing User Preference " + UserPreferences.SYNC_SITE);
+			return false;
+		}
+		
+		if (UserPreferences.getUserPref(UserPreferences.SYNC_LOCAL_FOLDER_PATH) == null) {
+			LOGGER.error("Missing User Preference " + UserPreferences.SYNC_LOCAL_FOLDER_PATH);
+			return false;
+		}
+		
+		// All settings are set and validated
+		return true;
+	}
+	
+	/**
+	 * Removes all user preferences from local system
+	 */
+	public static void clearSettings() {
+		UserPreferences.removeUserPref(UserPreferences.LOGIN_EMAIL);
+		UserPreferences.removeUserPref(UserPreferences.LOGIN_PASSWORD);
+		UserPreferences.removeUserPref(UserPreferences.LOGIN_VALIDATED);
+		UserPreferences.removeUserPref(UserPreferences.SYNC_LOCAL_FOLDER_PATH);
+		UserPreferences.removeUserPref(UserPreferences.SYNC_NETWORK);
+		UserPreferences.removeUserPref(UserPreferences.SYNC_SITE);
+	}
+
+	/**
+	 * Start Syncing
+	 * 
+	 */
+	public static void startSync() {
+		
+		// Create Instance of SyncManager
+		if (syncManager == null)
+			syncManager = new SyncManager();
+		
+		// Initialise and check connections are valid
+		syncManager.init();
+		if(syncManager.isInitialised && syncManager.remoteDisk.isValidConnection()){
+			
+			// Start Timer to syncronise from server periodically
+			Timer timer = new Timer();
+			int timerPeriod = (AppProperties.getInt(AppProperties.SYNC_TIMER_PERIOD) * 1000);
+			LOGGER.info("Setting Sync Timer to " + String.valueOf(timerPeriod) + " milliseconds");
+			timer.schedule(new TimerTask() {
+				
+				@Override
+				public void run() {
+					syncManager.sync();
+					
+				}
+			}, 0, timerPeriod);
+			
+			// TODO - Add JNotify code here so that it automatically starts a sync when file events occur
+			// HOWEVER need to check multi-threaded issues in case timer kicks off sync after real time 
+			// event is already syncing
+			
+		} else {
+			SetupDialog.setStatusMsg(I18N.getString("error.cannotConnectRemote.html"));
+			SetupDialog.showWindow();
+		}
 	}
 	
 	private void sync() {
@@ -95,10 +221,12 @@ public class SyncManager {
 
 		sync("", remoteDisk, localDisk);
 		sync("", localDisk, remoteDisk);
-		view.setStatusMessage("Sync complete. waiting....");
+		SystemTrayIcon.setSyncStatus(false);
 	}
 	
 	private void sync(String relativePath, FileStore source, FileStore destination) {
+		SystemTrayIcon.setSyncStatus(true);
+		LOGGER.info("Syncing....");
 		Map<String, Resource> srcRoot = source.getResources(relativePath, false);
 		Map<String, Resource> dstRoot = destination.getResources(relativePath, false);
 		
@@ -107,11 +235,16 @@ public class SyncManager {
 		}
 		
 		for(Resource srcResource : srcRoot.values()) {
+			
+			if (LOGGER.isDebugEnabled()) {
+				LOGGER.debug("Checking resource on " + source.getName() + ": " + srcResource.getPath() + srcResource.getName());
+			}
+			
 			if(isIllegal(srcResource)){
 				LOGGER.debug("Ignoring: " + srcResource.getName());
 				continue;
 			}
-			view.setStatusMessage(source.getName() + " - " + srcResource.getName());
+			
 			Resource dstResource = dstRoot.get(srcResource.getPath());
 			if(srcResource.isDirectory()) {
 				if(dstResource == null) {
@@ -133,53 +266,67 @@ public class SyncManager {
 //		}
 	}
 	
-	private void startSync() {
-		init(getTenant(view.getEmail()), getDefaultSite(view.getEmail()), view.getEmail(), view.getPassword());
-		if(remoteDisk.isValidConnection()){
-			Timer timer = new Timer();
-			timer.schedule(new TimerTask() {
+	/**
+	 * Creates temporary instance of Remote File Store to check if
+	 * it can connect and login credentials are valid
+	 * 
+	 * @param email		The user's email
+	 * @param password	The user's password
+	 * @return			True - login successful, False - login failed
+	 */
+	public static boolean validateLoginCredentials(String email, String password) {
+		
+		FileStore tmpRemoteDisk = new RemoteFileStore(AppProperties.getString(AppProperties.HTTP_PROTOCOL), 
+				AppProperties.getString(AppProperties.SERVER_URL), "", "", email, password);
+		
+		return tmpRemoteDisk.isValidConnection();
+	}
+	
+	/**
+	 * Returns a String array of all the Networks a user has access
+	 * to using their login credentials
+	 * 
+	 * @return	A String array of all the user's Networks
+	 */
+	public static String[] getNetworks() {
+		
+		FileStore tmpRemoteDisk = new RemoteFileStore(AppProperties.getString(AppProperties.HTTP_PROTOCOL), 
+				AppProperties.getString(AppProperties.SERVER_URL), "", "", UserPreferences.getUserPref(UserPreferences.LOGIN_EMAIL), 
+				UserPreferences.getUserPref(UserPreferences.LOGIN_PASSWORD));
+		
+		Map<String, Resource> networkDirs = tmpRemoteDisk.getResources("", false);
+		
+		// Get all Networks into String Array
+		ArrayList<String> networks = new ArrayList<String>();
+		for (String key : networkDirs.keySet()) {
+			networks.add(networkDirs.get(key).getName());
+		}
+		
+		return (String []) networks.toArray(new String[0]);
+	}
+	
+	/**
+	 * Returns a String array of all the Sites for a specific
+	 * Network
+	 * 
+	 * @param network	The Network to get the Sites for
+	 * @return			A String array of all the user's Sites in a Network
+	 */
+	public static String[] getSites(String network) {
+		
+		FileStore tmpRemoteDisk = new RemoteFileStore(AppProperties.getString(AppProperties.HTTP_PROTOCOL), 
+				AppProperties.getString(AppProperties.SERVER_URL), "", "", UserPreferences.getUserPref(UserPreferences.LOGIN_EMAIL), 
+				UserPreferences.getUserPref(UserPreferences.LOGIN_PASSWORD));
+		
+		Map<String, Resource> siteDirs = tmpRemoteDisk.getResources("/" + network + "/", false); 
+		
+		// Get all Networks into String Array
+		ArrayList<String> sites = new ArrayList<String>();
+		for (String key : siteDirs.keySet()) {		
+			sites.add(siteDirs.get(key).getName());
+		}
 				
-				@Override
-				public void run() {
-					sync();
-					
-				}
-			}, 0, 300000);
-		} else {
-			loginUpdateView(false, "Invalid credentials");
-		}
-		
-	}
-
-	private void loginUpdateView(boolean success, String status) {
-		view.enableLogin(!success);
-		view.setStatusMessage(status);
-		uiDisabled = true;
-	}
-	
-	private String getTenant(String email) {
-		String tenant = settings.getProperty("cloud-tenant");
-		if(tenant == null || tenant.isEmpty()){
-			tenant = email.split("@")[1];
-		}
-		
-		return tenant;
-	}
-	
-	private String getDefaultSite(String email) {
-		String site = settings.getProperty("cloud-site");
-		if(site == null || site.isEmpty()) {
-			try {
-				String[] emailSplit = email.split("@");
-				String[] user = emailSplit[0].split("\\.");
-				String[] domain = emailSplit[1].split("\\.");
-				site = user[0] + "-" + user[1] + "-" + domain[0] + "-" + domain[1];
-			} catch (Exception e) {
-				return "";
-			}
-		}
-		
-		return site;
+		return (String []) sites.toArray(new String[0]);
 	}
 	
 	private Map<String, String> getAllExceptions() {
@@ -205,7 +352,7 @@ public class SyncManager {
 	
 	private Map<String, String> getLocalExceptions() {
 		try {
-			return readExceptions(new FileInputStream(configFolder + "/" + exceptionsFile));
+			return readExceptions(new FileInputStream("configFolder" + "/" + "exceptionsFile"));
 		} catch (IOException e) {
 			return null;
 		}
@@ -239,24 +386,5 @@ public class SyncManager {
 			}
 		}
 		return false;
-	}
-	
-	private Properties loadSettingsFile(String path) {
-		Properties settings = new Properties();
-		try {
-			settings.load(new FileInputStream(configFolder + "/" + path));
-		} catch (Exception e) {
-			LOGGER.error("Failed to load settings file");
-		}
-		
-		return settings;
-	}
-	
-	private String getLocalCloud(ResourceBundle resources) {
-		String localCloud = settings.getProperty("local-folder");
-		if(localCloud == null || localCloud.isEmpty()) {
-			localCloud = System.getProperty("user.home") + resources.getString("localcloudfolder");
-		}
-		return localCloud;
 	}
 }

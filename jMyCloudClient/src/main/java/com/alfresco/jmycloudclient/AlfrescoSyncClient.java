@@ -19,35 +19,54 @@
 
 package com.alfresco.jmycloudclient;
 
-import java.util.ResourceBundle;
-
 import javax.swing.SwingUtilities;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.alfresco.jmycloudclient.filestore.SystemListener;
 import com.alfresco.jmycloudclient.manager.SyncManager;
-import com.alfresco.jmycloudclient.view.SyncView;
-import com.alfresco.jmycloudclient.view.SyncViewImpl;
+import com.alfresco.jmycloudclient.view.SetupDialog;
+import com.alfresco.jmycloudclient.view.SystemTrayIcon;
 
-public class MyCloudClient {
+/**
+ * Main entry point for application
+ * 
+ * @author dgildeh
+ *
+ */
+public class AlfrescoSyncClient {
 
-	private static final Logger LOGGER = LoggerFactory
-			.getLogger(MyCloudClient.class);
-
+	private static final Logger LOGGER = LoggerFactory.getLogger(AlfrescoSyncClient.class);
+	
+	/**
+	 * Main Method initialises and starts main application. This application does
+	 * not use any passed in arguments
+	 * 
+	 * @param args			Any arguments passed into application on start
+	 * @throws Exception
+	 */
+	@SuppressWarnings("unused")
 	public static void main(String[] args) throws Exception {
-		final ResourceBundle resources = ResourceBundle
-				.getBundle("com.alfresco.jmycloudclient.config");
-
+		
+		// Launch UI
 		SwingUtilities.invokeLater(new Runnable() {
 			public void run() {
-				LOGGER.info("----------myCloudSync started----------");
-				SyncView view = new SyncViewImpl();
-				new SyncManager(resources, view);
+				
+				LOGGER.info("----------Alfresco Sync Started----------");	
+				
+				// Create System Tray Icon with Popup Menu
+				SystemTrayIcon tray = new SystemTrayIcon();	
+				
+				// Show Setup Dialog Window if user settings haven't been saved and validated
+				if (! SyncManager.validateAllUserPrefs()) {
+					SetupDialog.showWindow();
+				} else {
+					SyncManager.startSync();
+				}	
 			}
 		});
 		
-		SystemListener listener = new SystemListener();
+		// Start Sync Watches
+		//SystemListener listener = new SystemListener();
 	}
 }
