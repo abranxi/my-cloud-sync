@@ -308,7 +308,7 @@ public class SetupDialog extends JFrame {
 					UserPreferences.saveUserPref(UserPreferences.SYNC_LOCAL_FOLDER_PATH, (String)localFolderPathTextField.getText());
 					
 					// Start Sync & Close Window
-					if (SyncManager.validateAllUserPrefs()) {
+					if (UserPreferences.checkRequiredPreferencesSet()) {
 						SyncManager.startSync();
 						window.setVisible(false);
 					} else {
@@ -323,7 +323,7 @@ public class SetupDialog extends JFrame {
 		// If User Preferences Set, setup field values - we do this before adding ActionListeners to 
 		// combo boxes or when we set the field options on the combo boxes it will fire change events
 		// causing errors
-		if (SyncManager.validateAllUserPrefs()) {
+		if (UserPreferences.checkRequiredPreferencesSet()) {
 			
 			// Set text field values
 			emailField.setText(UserPreferences.getUserPref(UserPreferences.LOGIN_EMAIL,""));
@@ -405,7 +405,7 @@ public class SetupDialog extends JFrame {
 		
 		if (clear) {
 			// Delete all user credentials and set Login_Validated to false
-			SyncManager.clearSettings();
+			UserPreferences.removeAllUserPrefs();
 		}
 		
 		// Make sure Login fields are editable and clear text

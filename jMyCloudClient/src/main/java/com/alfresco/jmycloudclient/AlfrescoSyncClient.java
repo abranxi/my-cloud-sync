@@ -25,6 +25,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.alfresco.jmycloudclient.manager.SyncManager;
+import com.alfresco.jmycloudclient.manager.UserPreferences;
 import com.alfresco.jmycloudclient.view.SetupDialog;
 import com.alfresco.jmycloudclient.view.SystemTrayIcon;
 
@@ -58,7 +59,7 @@ public class AlfrescoSyncClient {
 				SystemTrayIcon tray = new SystemTrayIcon();	
 				
 				// Show Setup Dialog Window if user settings haven't been saved and validated
-				if (! SyncManager.validateAllUserPrefs()) {
+				if (! UserPreferences.checkRequiredPreferencesSet()) {
 					SetupDialog.showWindow();
 				} else {
 					SyncManager.startSync();

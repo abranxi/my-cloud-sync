@@ -54,6 +54,9 @@ public class SystemTrayIcon {
 	private static SystemTray systemTray = null;
 	private static TrayIcon trayIcon = null;
 	
+	// Popup Notification toaster
+	private static final Toaster toaster = new Toaster();
+	
 	public SystemTrayIcon() {
 			
 		//Check the SystemTray is supported
@@ -82,6 +85,38 @@ public class SystemTrayIcon {
         	  }
         });
         popupMenu.add(preferencesItem);
+        popupMenu.addSeparator();
+        
+        // Add Sync.. Button to manually start sync ahead of scheduled sync
+        final MenuItem syncItem = new MenuItem(I18N.getString("systemtray.menu.sync"));
+        syncItem.addActionListener(new ActionListener()
+        {
+        	  public void actionPerformed(ActionEvent e)
+        	  {
+        		  if (LOGGER.isDebugEnabled()) {
+        			  LOGGER.debug("Sync Menu Item Clicked");  
+        		  }
+        	  }
+        });
+        popupMenu.add(syncItem);
+        
+        // Add Pause Syncing Button to stop all Syncing
+        final MenuItem pauseSyncItem = new MenuItem(I18N.getString("systemtray.menu.pauseSync"));
+        pauseSyncItem.addActionListener(new ActionListener()
+        {
+        	  public void actionPerformed(ActionEvent e)
+        	  {
+        		  // Switch between Pause and Resume - Disable Sync button on Pause
+        		  if (pauseSyncItem.getLabel().equals(I18N.getString("systemtray.menu.pauseSync"))) {
+        			  pauseSyncItem.setLabel(I18N.getString("systemtray.menu.resumeSync"));
+        			  syncItem.setEnabled(false);
+        		  } else {
+        			  pauseSyncItem.setLabel(I18N.getString("systemtray.menu.pauseSync"));
+        			  syncItem.setEnabled(true);
+        		  }
+        	  }
+        });
+        popupMenu.add(pauseSyncItem);
         popupMenu.addSeparator();
         
         // Add Application About Dialog
@@ -148,6 +183,7 @@ public class SystemTrayIcon {
 		if (syncStatus) {
 			trayIcon.setImage(createImage("/com/alfresco/jmycloudclient/view/trayIcon_spinning.png", "Spinning Tray Icon")); 
 			trayIcon.setToolTip(I18N.getString("systemtray.tooltip.syncing")); 
+			toaster.showToaster(I18N.getString("systemtray.tooltip.syncing"));
 		} else {
 			trayIcon.setImage(createImage("/com/alfresco/jmycloudclient/view/trayIcon.png", "Tray Icon")); 
 			trayIcon.setToolTip(I18N.getString("systemtray.tooltip.inactive")); 

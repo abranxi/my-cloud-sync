@@ -119,7 +119,15 @@ public class UserPreferences {
 	 * @param value		The value of the preference
 	 */
 	public static void saveUserPref(String key, boolean value) {
-		LOGGER.info("Saving User Preference '" + key + "': " + String.valueOf(value));
+		
+		//TODO Store use credentials using KeyStore implementation
+		
+		// Do not write password to Log
+		if (key.equals(LOGIN_PASSWORD)) {
+			LOGGER.info("Saving User Preference '" + key + "': *HIDDEN*");
+		} else {
+			LOGGER.info("Saving User Preference '" + key + "': " + String.valueOf(value));
+		}
 		getPreferences().putBoolean(key, value);
 	}
 	
@@ -144,4 +152,64 @@ public class UserPreferences {
 		LOGGER.info("Removing User Preference '" + key + "'");
 		getPreferences().remove(key);
 	}	
+	
+	/**
+	 * Remove all the stored user preferences for the application
+	 */
+	public static void removeAllUserPrefs() {
+		
+		// TODO - Should remove Node so it clears all below and any other user
+		// preferences stored for application
+		
+		UserPreferences.removeUserPref(UserPreferences.LOGIN_EMAIL);
+		UserPreferences.removeUserPref(UserPreferences.LOGIN_PASSWORD);
+		UserPreferences.removeUserPref(UserPreferences.LOGIN_VALIDATED);
+		UserPreferences.removeUserPref(UserPreferences.SYNC_LOCAL_FOLDER_PATH);
+		UserPreferences.removeUserPref(UserPreferences.SYNC_NETWORK);
+		UserPreferences.removeUserPref(UserPreferences.SYNC_SITE);
+	}
+	
+	/**
+	 * Utility function to check if all required user preferences have been set
+	 * by the user on the Setup forms. These all need to be set for a Sync to connect
+	 * and sync with the remote server
+	 * 
+	 * @return	True - all required user preferences set, 
+	 * 			False - not all required user preferences have been set
+	 */
+	public static boolean checkRequiredPreferencesSet() {
+		
+		if (UserPreferences.getUserPref(UserPreferences.LOGIN_EMAIL) == null) {
+			LOGGER.error("Missing User Preference " + UserPreferences.LOGIN_EMAIL);
+			return false;
+		}
+		
+		if (UserPreferences.getUserPref(UserPreferences.LOGIN_PASSWORD) == null) {
+			LOGGER.error("Missing User Preference " + UserPreferences.LOGIN_PASSWORD);
+			return false;
+		}
+		
+		if (UserPreferences.getUserPref(UserPreferences.LOGIN_VALIDATED, false) == false) {
+			LOGGER.error("Missing User Preference " + UserPreferences.LOGIN_VALIDATED);
+			return false;
+		}
+		
+		if (UserPreferences.getUserPref(UserPreferences.SYNC_NETWORK) == null) {
+			LOGGER.error("Missing User Preference " + UserPreferences.SYNC_NETWORK);
+			return false;
+		}
+		
+		if (UserPreferences.getUserPref(UserPreferences.SYNC_SITE) == null) {
+			LOGGER.error("Missing User Preference " + UserPreferences.SYNC_SITE);
+			return false;
+		}
+		
+		if (UserPreferences.getUserPref(UserPreferences.SYNC_LOCAL_FOLDER_PATH) == null) {
+			LOGGER.error("Missing User Preference " + UserPreferences.SYNC_LOCAL_FOLDER_PATH);
+			return false;
+		}
+		
+		// All settings are set and validated
+		return true;
+	}
 }

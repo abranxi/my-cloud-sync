@@ -87,7 +87,7 @@ public class SyncManager {
 		LOGGER.info("Initialising SyncManager...");
 		
 		// Check that we have all necessary user preferences set - if not show Setup Dialog
-		if (! validateAllUserPrefs()) {						
+		if (! UserPreferences.checkRequiredPreferencesSet()) {						
 			LOGGER.info("User Properties Missing, Opening Setup Dialog...");
 			SetupDialog.showWindow();
 		} else {
@@ -120,61 +120,6 @@ public class SyncManager {
 				LOGGER.info("SyncManager Initialisation Complete!");
 			}
 		}
-	}
-	
-	/**
-	 * Checks if all required user preferences are set and validated, if so will return 
-	 * true, otherwise false
-	 * 
-	 * @return		True - all user preferences set & validated, 
-	 * 				False - User Preferences need to be set & validated
-	 */
-	public static boolean validateAllUserPrefs() {
-		
-		if (UserPreferences.getUserPref(UserPreferences.LOGIN_EMAIL) == null) {
-			LOGGER.error("Missing User Preference " + UserPreferences.LOGIN_EMAIL);
-			return false;
-		}
-		
-		if (UserPreferences.getUserPref(UserPreferences.LOGIN_PASSWORD) == null) {
-			LOGGER.error("Missing User Preference " + UserPreferences.LOGIN_PASSWORD);
-			return false;
-		}
-		
-		if (UserPreferences.getUserPref(UserPreferences.LOGIN_VALIDATED, false) == false) {
-			LOGGER.error("Missing User Preference " + UserPreferences.LOGIN_VALIDATED);
-			return false;
-		}
-		
-		if (UserPreferences.getUserPref(UserPreferences.SYNC_NETWORK) == null) {
-			LOGGER.error("Missing User Preference " + UserPreferences.SYNC_NETWORK);
-			return false;
-		}
-		
-		if (UserPreferences.getUserPref(UserPreferences.SYNC_SITE) == null) {
-			LOGGER.error("Missing User Preference " + UserPreferences.SYNC_SITE);
-			return false;
-		}
-		
-		if (UserPreferences.getUserPref(UserPreferences.SYNC_LOCAL_FOLDER_PATH) == null) {
-			LOGGER.error("Missing User Preference " + UserPreferences.SYNC_LOCAL_FOLDER_PATH);
-			return false;
-		}
-		
-		// All settings are set and validated
-		return true;
-	}
-	
-	/**
-	 * Removes all user preferences from local system
-	 */
-	public static void clearSettings() {
-		UserPreferences.removeUserPref(UserPreferences.LOGIN_EMAIL);
-		UserPreferences.removeUserPref(UserPreferences.LOGIN_PASSWORD);
-		UserPreferences.removeUserPref(UserPreferences.LOGIN_VALIDATED);
-		UserPreferences.removeUserPref(UserPreferences.SYNC_LOCAL_FOLDER_PATH);
-		UserPreferences.removeUserPref(UserPreferences.SYNC_NETWORK);
-		UserPreferences.removeUserPref(UserPreferences.SYNC_SITE);
 	}
 
 	/**
