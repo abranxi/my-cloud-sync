@@ -195,7 +195,7 @@ public class SetupDialog extends JFrame {
 		selectNetworkPanel.setLayout(new FlowLayout(FlowLayout.LEFT));
 		selectNetworkPanel.add(new JLabel(I18N.getString("setup.selectnetwork.label")));
 		String[] networkOptions = { I18N.getString("setup.comboBox.default") };
-		selectNetworkField = new JComboBox(networkOptions);
+		selectNetworkField = new TruncatedComboBox(networkOptions);
 		selectNetworkField.setEnabled(false);
 		selectNetworkField.setEditable(false);
 		selectNetworkPanel.add(selectNetworkField);
@@ -207,7 +207,7 @@ public class SetupDialog extends JFrame {
 		selectSitePanel.setLayout(new FlowLayout(FlowLayout.LEFT));
 		selectSitePanel.add(new JLabel(I18N.getString("setup.selectsite.label")));
 		String[] siteOptions = { I18N.getString("setup.comboBox.default") };
-		selectSiteField = new JComboBox(siteOptions);
+		selectSiteField = new TruncatedComboBox(siteOptions);
 		selectSiteField.setEnabled(false);
 		selectSiteField.setEditable(false);
 		selectSitePanel.add(selectSiteField);
@@ -486,28 +486,9 @@ public class SetupDialog extends JFrame {
 		
 		if (newOptions != null) {		
 			for (String item : newOptions) {
-				comboBox.addItem(truncateString(item, 25));
+				comboBox.addItem(item);
 			}
 		}
-	}
-	
-	/**
-	 * Helper method to truncate strings to max. length with '...' at end if it
-	 * has been truncated. This ensures the combo boxes doesn't get pushed down as 
-	 * they are too long to display on the form
-	 * 
-	 * @param string		The string to check and truncate if longer than maxLength
-	 * @param maxLength		The max. length of the string
-	 * @return				The truncated String
-	 */
-	private String truncateString(String string, final int maxLength) {
-		
-		// Check to see if string is longer than maxLength
-		if (string.length() > maxLength) {
-			string = string.substring(0, (maxLength - 3)) + "...";
-		} 
-		
-		return string;	
 	}
 	
 	/**
